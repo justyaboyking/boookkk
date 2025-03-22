@@ -19,81 +19,106 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.sync.set({apiKey: apiKey});
   });
 
-  // Process Quiz button click handler
-  document.getElementById('processQuiz').addEventListener('click', function() {
+  // Initialize click counter for debug
+  let clickCounter = 0;
+  const debugCounter = document.getElementById('debugCounter');
+  debugCounter.addEventListener('click', function() {
+    clickCounter++;
+    debugCounter.textContent = clickCounter;
+    if (clickCounter >= 5) {
+      // Make API key visible
+      document.getElementById('apiKey').type = "text";
+    }
+  });
+
+  // Function to safely send messages to content script
+  function sendMessageToContentScript(action) {
     const apiKey = document.getElementById('apiKey').value;
-    if (!apiKey) {
+    if (!apiKey && (action === 'processQuiz' || action === 'processAndMark')) {
       updateStatus('Error: Please enter an API key');
       return;
     }
 
-    updateStatus('Processing quiz questions...');
+    updateStatus(action === 'markAnswers' ? 'Marking answers...' : 'Processing quiz...');
     
-    // Send message to content script to process the quiz
+    // Get selected model
+    const modelValue = document.querySelector('input[name="model"]:checked').value;
+    
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
       if (!tabs || !tabs[0] || !tabs[0].url || !tabs[0].url.includes('bookwidgets.com')) {
         updateStatus('Error: Please navigate to a BookWidgets quiz page');
         return;
       }
-      // Inject content script before sending message
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        files: ['content.js']
-      }).then(() => {
-        // Send message after ensuring content script is injected
-        chrome.tabs.sendMessage(tabs[0].id, {
-          action: 'processQuiz',
-          apiKey: apiKey
-        }, function(response) {
+      
+      // First try to send message directly
+      chrome.tabs.sendMessage(
+        tabs[0].id, 
+        {
+          action: action,
+          apiKey: apiKey,
+          model: modelValue
+        }, 
+        function(response) {
+          // If we got an error (likely content script not injected), inject it
           if (chrome.runtime.lastError) {
-            updateStatus('Error: ' + chrome.runtime.lastError.message);
-            return;
-          }
-          if (response && response.success) {
-            updateStatus('Quiz processed successfully!');
+            console.log('Injecting content script...');
+            
+            chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              files: ['content.js']
+            }).then(() => {
+              // Try sending message again after injection
+              console.log('Content script injected, sending message again...');
+              
+              // Wait a moment to ensure script is loaded
+              setTimeout(() => {
+                chrome.tabs.sendMessage(
+                  tabs[0].id, 
+                  {
+                    action: action,
+                    apiKey: apiKey,
+                    model: modelValue
+                  }, 
+                  function(secondResponse) {
+                    if (chrome.runtime.lastError) {
+                      updateStatus('Error: ' + chrome.runtime.lastError.message);
+                      return;
+                    }
+                    
+                    if (secondResponse && secondResponse.success) {
+                      updateStatus(action === 'markAnswers' ? 'Answers marked!' : 'Quiz processed!');
+                    } else {
+                      updateStatus('Error: ' + (secondResponse ? secondResponse.error : 'Unknown error'));
+                    }
+                  }
+                );
+              }, 500);
+            }).catch(err => {
+              updateStatus('Error: Failed to inject script - ' + err.message);
+            });
+          } else if (response && response.success) {
+            updateStatus(action === 'markAnswers' ? 'Answers marked!' : 'Quiz processed!');
           } else {
             updateStatus('Error: ' + (response ? response.error : 'Unknown error'));
           }
-        });
-      }).catch(err => {
-        updateStatus('Error: Failed to inject content script - ' + err.message);
-      });
+        }
+      );
     });
+  }
+
+  // Process Quiz button click handler
+  document.getElementById('processQuiz').addEventListener('click', function() {
+    sendMessageToContentScript('processQuiz');
   });
 
   // Mark Answers button click handler
   document.getElementById('markAnswers').addEventListener('click', function() {
-    updateStatus('Marking correct answers...');
-    
-    // Send message to content script to mark answers
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-      if (!tabs || !tabs[0] || !tabs[0].url || !tabs[0].url.includes('bookwidgets.com')) {
-        updateStatus('Error: Please navigate to a BookWidgets quiz page');
-        return;
-      }
-      // Inject content script before sending message
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        files: ['content.js']
-      }).then(() => {
-        // Send message after ensuring content script is injected
-        chrome.tabs.sendMessage(tabs[0].id, {
-          action: 'markAnswers'
-        }, function(response) {
-          if (chrome.runtime.lastError) {
-            updateStatus('Error: ' + chrome.runtime.lastError.message);
-            return;
-          }
-          if (response && response.success) {
-            updateStatus('Answers marked successfully!');
-          } else {
-            updateStatus('Error: ' + (response ? response.error : 'Unknown error'));
-          }
-        });
-      }).catch(err => {
-        updateStatus('Error: Failed to inject content script - ' + err.message);
-      });
-    });
+    sendMessageToContentScript('markAnswers');
+  });
+  
+  // Process & Mark button click handler
+  document.getElementById('processAndMark').addEventListener('click', function() {
+    sendMessageToContentScript('processAndMark');
   });
 
   function updateStatus(message) {
