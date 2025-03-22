@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BookWidgets Helper</title>
+  <style>
+    body {
+      width: 320px;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      font-size: 18px;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    button {
+      padding: 8px 12px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    .status {
+      margin-top: 15px;
+      padding: 8px;
+      border-radius: 4px;
+      background-color: #f1f1f1;
+      font-size: 14px;
+    }
+    #apiKeyContainer {
+      margin-top: 15px;
+    }
+    #apiKey {
+      width: 100%;
+      padding: 6px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    #questionStats {
+      font-size: 12px; 
+      margin-top: 5px; 
+      color: #666;
+    }
+    .model-selection {
+      margin-top: 15px;
+      margin-bottom: 10px;
+    }
+    .model-selection label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .model-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .model-option {
+      flex: 1;
+      min-width: 100px;
+    }
+    .model-option input {
+      margin-right: 5px;
+    }
+    .process-and-mark {
+      background-color: #34a853;
+      font-weight: bold;
+    }
+    .debug-counter {
+      position: fixed;
+      top: 5px;
+      right: 10px;
+      background: #f1f1f1;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      color: #4285f4;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <h1>BookWidgets Helper</h1>
+  
+  <!-- Debug counter -->
+  <div id="debugCounter" class="debug-counter">0</div>
+  
+  <div class="model-selection">
+    <label>Gemini Model:</label>
+    <div class="model-options">
+      <div class="model-option">
+        <input type="radio" id="model15Flash" name="model" value="1.5-flash">
+        <label for="model15Flash">1.5 Flash</label>
+      </div>
+      <div class="model-option">
+        <input type="radio" id="modelFlash" name="model" value="flash" checked>
+        <label for="modelFlash">2.0 Flash</label>
+      </div>
+      <div class="model-option">
+        <input type="radio" id="modelThinking" name="model" value="pro">
+        <label for="modelThinking">2.0 Pro</label>
+      </div>
+    </div>
+  </div>
+  
+  <div class="button-container">
+    <button id="processQuiz">Process Quiz Questions</button>
+    <button id="markAnswers">Mark Correct Answers</button>
+    <button id="processAndMark" class="process-and-mark">Process & Mark Answers</button>
+  </div>
+  
+  <!-- Detection indicators - Minimal addition -->
+  <div class="status" id="status">Status: Ready</div>
+  <div id="questionStats"></div>
+  
+  <div id="apiKeyContainer">
+    <label for="apiKey">Gemini API Key:</label>
+    <input type="password" id="apiKey" placeholder="Enter your Gemini API key">
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
